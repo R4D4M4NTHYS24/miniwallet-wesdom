@@ -17,12 +17,12 @@ erDiagram
     uuid id PK
     string email UK
     string passwordHash
-    UserRole role
+    string role
   }
 
   Wallet {
     uuid id PK
-    uuid userId FK_UK
+    uuid userId FK
     bigint availableBalanceCents
     bigint pendingBalanceCents
     string currency
@@ -31,8 +31,8 @@ erDiagram
   Transaction {
     uuid id PK
     bigint amountCents
-    TransactionStatus status
-    RiskReason riskReason
+    string status
+    string riskReason
     uuid fromUserId FK
     uuid toUserId FK
     uuid fromWalletId FK
@@ -46,9 +46,9 @@ erDiagram
     uuid id PK
     uuid transactionId FK
     uuid walletId FK
-    LedgerDirection direction
-    LedgerBalanceType balanceType
-    LedgerEntryType entryType
+    string direction
+    string balanceType
+    string entryType
     bigint amountCents
   }
 
@@ -59,7 +59,7 @@ erDiagram
     string entityType
     uuid entityId
     uuid transactionId FK
-    json metadata
+    string metadata
   }
 ```
 
