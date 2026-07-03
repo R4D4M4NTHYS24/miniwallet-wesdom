@@ -183,3 +183,17 @@ Docker Compose reduces environment drift and makes the technical test easier to 
 
 ### Trade-offs
 Container configuration adds setup files, but it improves reviewer experience and repeatability.
+
+## ADR 014 — Database constraints for financial integrity
+
+### Context
+Wallet systems should not rely only on application logic for financial invariants.
+
+### Decision
+Use database `CHECK` constraints for non-negative balances, positive amounts, USD-only currency, different users/wallets, and pending review risk reason. Use composite foreign keys so transaction wallets must belong to the corresponding transaction users.
+
+### Rationale
+Database constraints protect against invalid data even if a service bug or manual database operation occurs. They also improve auditability and make the financial model easier to defend in code review.
+
+### Trade-offs
+Some constraints are visible in migration SQL rather than the Prisma schema because Prisma has limited native `CHECK` constraint support. This slightly increases migration complexity, but improves financial correctness.

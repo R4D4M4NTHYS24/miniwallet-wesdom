@@ -1,10 +1,10 @@
 # MiniWallet
 
-MiniWallet is a fintech-oriented wallet technical test. This repository is currently at Phase 2: Docker Compose plus minimal API/web skeleton.
+MiniWallet is a fintech-oriented wallet technical test. This repository is currently at Phase 3: database schema, Prisma migrations, and seed data.
 
-No authentication, Prisma schema, wallet logic, transfer logic, ledger logic, admin review, transaction history, or integration tests are implemented yet.
+No authentication flows, transfer execution logic, admin review behavior, transaction history endpoints, frontend features, or integration tests are implemented yet.
 
-## Run Phase 2 Skeleton
+## Run Current Skeleton
 
 ```bash
 docker compose up --build
@@ -28,8 +28,46 @@ The API health endpoint returns JSON confirming the Express service is running:
 
 ## Local Environment
 
-Copy `.env.example` to `.env` if you want to override local defaults used by Docker Compose.
+Copy `.env.example` to `.env` before running host-local Prisma commands:
 
-`DATABASE_URL` in `.env.example` uses `localhost` for host-local tools. Docker Compose passes an internal database URL to the API container that uses the `postgres` service hostname.
+```bash
+cp .env.example .env
+```
 
-`JWT_SECRET` is reserved for Phase 4 authentication and is not used by the Phase 2 skeleton yet.
+`DATABASE_URL` in `.env.example` uses `localhost` for host-local Prisma commands. Docker Compose explicitly passes an internal database URL to the API container that uses the `postgres` service hostname.
+
+`JWT_SECRET` is reserved for Phase 4 authentication and is not used by the Phase 3 skeleton yet.
+
+## Database Setup
+
+Start PostgreSQL:
+
+```bash
+docker compose up -d postgres
+```
+
+Generate the Prisma client:
+
+```bash
+npm run prisma:generate
+```
+
+Apply migrations:
+
+```bash
+npm run prisma:migrate
+```
+
+Seed predictable local users and wallets:
+
+```bash
+npm run prisma:seed
+```
+
+Seeded users:
+
+- `admin@miniwallet.local`: admin user with `0` available cents.
+- `alice@miniwallet.local`: regular user with `250000` available cents.
+- `bob@miniwallet.local`: regular user with `100000` available cents.
+
+Seeded passwords are placeholder hashes only. Login/auth behavior is planned for Phase 4 and is not implemented yet.

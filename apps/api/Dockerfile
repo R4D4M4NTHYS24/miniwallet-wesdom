@@ -5,6 +5,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/package.json
 COPY apps/web/package.json ./apps/web/package.json
+COPY apps/api/prisma ./apps/api/prisma
+COPY apps/api/prisma.config.ts ./apps/api/prisma.config.ts
 RUN npm ci --workspace apps/api
 
 COPY apps/api/tsconfig.json ./apps/api/tsconfig.json

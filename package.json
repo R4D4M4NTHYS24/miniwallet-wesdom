@@ -11,6 +11,9 @@
     "dev:web": "npm --workspace apps/web run dev",
     "build": "npm --workspaces run build",
     "build:api": "npm --workspace apps/api run build",
-    "build:web": "npm --workspace apps/web run build"
+    "build:web": "npm --workspace apps/web run build",
+    "prisma:generate": "npm --workspace apps/api run prisma:generate",
+    "prisma:migrate": "npm --workspace apps/api run prisma:migrate",
+    "prisma:seed": "npm --workspace apps/api run prisma:seed"
   }
 }
