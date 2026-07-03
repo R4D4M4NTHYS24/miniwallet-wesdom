@@ -120,7 +120,7 @@ Queries may need to join multiple tables, but each table has a clear purpose and
 High-value transfers enter `PENDING_REVIEW` and must be validated before being confirmed.
 
 ### Decision
-Implement admin endpoints: `POST /admin/suspicious-transactions/:id/approve` and `POST /admin/suspicious-transactions/:id/reject`.
+Implement admin endpoints: `POST /admin/transactions/:id/approve` and `POST /admin/transactions/:id/reject`.
 
 ### Rationale
 Without approve/reject endpoints, the pending review lifecycle would be incomplete.
