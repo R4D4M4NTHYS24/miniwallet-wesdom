@@ -1,5 +1,7 @@
 import cors from "cors";
-import express, { type ErrorRequestHandler } from "express";
+import express from "express";
+import { authRouter } from "./auth/routes.js";
+import { errorHandler } from "./errors.js";
 
 export const app = express();
 
@@ -14,15 +16,6 @@ app.get("/health", (_req, res) => {
   });
 });
 
-const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
-  console.error(error);
-
-  res.status(500).json({
-    error: {
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Unexpected server error"
-    }
-  });
-};
+app.use("/auth", authRouter);
 
 app.use(errorHandler);
