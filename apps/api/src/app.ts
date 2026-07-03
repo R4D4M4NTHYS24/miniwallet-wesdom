@@ -1,7 +1,9 @@
 import cors from "cors";
 import express from "express";
+import { adminRouter } from "./admin/routes.js";
 import { authRouter } from "./auth/routes.js";
 import { errorHandler } from "./errors.js";
+import { transactionsRouter } from "./transactions/routes.js";
 import { transfersRouter } from "./transfers/routes.js";
 
 export const app = express();
@@ -19,5 +21,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/transfers", transfersRouter);
+app.use("/transactions", transactionsRouter);
+app.use("/admin", adminRouter);
 
 app.use(errorHandler);

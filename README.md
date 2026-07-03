@@ -1,8 +1,8 @@
 # MiniWallet
 
-MiniWallet is a fintech-oriented wallet technical test. This repository is currently at Phase 5: atomic transfer creation via `POST /transfers`.
+MiniWallet is a fintech-oriented wallet technical test. This repository is currently at Phase 6: transaction history and admin suspicious transfer review.
 
-Admin review behavior, transaction history endpoints, frontend features, and integration tests are not implemented yet.
+Frontend features and integration tests are not implemented yet.
 
 ## Run Locally
 
@@ -77,6 +77,14 @@ curl -X POST http://localhost:3000/transfers \
 ```
 
 `amountCents` must be sent as a string for BigInt-safe parsing and serialization.
+
+## History And Admin Review
+
+- `GET /transactions`: authenticated user's own transaction history.
+- `GET /transactions/:id`: transaction detail, with admin detail access allowed.
+- `GET /admin/suspicious-transactions`: admin pending-review queue.
+- `POST /admin/transactions/:id/approve`: approve a pending suspicious transfer.
+- `POST /admin/transactions/:id/reject`: reject a pending suspicious transfer.
 
 ## Database Setup
 
