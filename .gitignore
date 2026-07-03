@@ -15,8 +15,8 @@ coverage
 .idea
 
 # Local/private notes
-.local
 tmp
+.local/
 
 # Personal harness artifacts must not be committed
 AGENTS.md
