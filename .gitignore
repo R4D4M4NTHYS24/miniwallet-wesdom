@@ -1,0 +1,24 @@
+node_modules
+dist
+build
+coverage
+
+.env
+.env.*
+!.env.example
+
+.DS_Store
+*.log
+
+# IDE
+.vscode
+.idea
+
+# Local/private notes
+.local
+tmp
+
+# Personal harness artifacts must not be committed
+AGENTS.md
+.opencode/
+.agentic/
