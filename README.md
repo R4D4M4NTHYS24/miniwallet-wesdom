@@ -1,17 +1,24 @@
 # MiniWallet
 
-MiniWallet is a fintech-oriented wallet technical test. This repository is currently at Phase 7: API integration tests for core wallet flows.
+MiniWallet is a fintech-oriented wallet technical test. This repository is currently at Phase 8: a minimal reviewable web UI over the existing wallet API.
 
-Frontend features are not implemented yet. API integration tests cover the core auth, transfer, history, admin review, ledger, audit, and concurrency flows.
+The API covers auth, wallet summary, transfers, transaction history, admin review, ledger, audit, and concurrency flows. The web app demonstrates the core reviewer flow without adding wallet mutations beyond the existing transfer and admin review endpoints.
 
 ## Run Locally
 
 ```bash
-docker compose up --build
+docker compose up -d --build api web postgres
+```
+
+If the database has not been migrated yet, run:
+
+```bash
+npm run prisma:migrate
 ```
 
 Expected local URLs:
 
+- API: http://localhost:3000
 - API health endpoint: http://localhost:3000/health
 - Web app: http://localhost:5173
 - PostgreSQL: localhost:5432
@@ -22,9 +29,28 @@ The API health endpoint returns JSON confirming the Express service is running:
 {
   "status": "ok",
   "service": "miniwallet-api",
-  "phase": "skeleton"
+  "phase": "phase-8-minimal-ui"
 }
 ```
+
+## Web Review Flow
+
+Seed credentials:
+
+- `admin@miniwallet.local` / `Password123!`
+- `alice@miniwallet.local` / `Password123!`
+- `bob@miniwallet.local` / `Password123!`
+
+Reviewer flow:
+
+1. Open http://localhost:5173.
+2. Log in as Bob and copy Bob's displayed User ID.
+3. Log in as Alice.
+4. Paste Bob's User ID as the recipient.
+5. Send `5000` cents for a confirmed transfer.
+6. Send `100001` cents for a pending-review transfer.
+7. Log in as admin.
+8. Approve or reject pending transactions from the admin queue.
 
 ## Local Environment
 

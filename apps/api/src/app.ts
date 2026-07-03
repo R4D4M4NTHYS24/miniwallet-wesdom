@@ -5,6 +5,7 @@ import { authRouter } from "./auth/routes.js";
 import { errorHandler } from "./errors.js";
 import { transactionsRouter } from "./transactions/routes.js";
 import { transfersRouter } from "./transfers/routes.js";
+import { walletRouter } from "./wallet/routes.js";
 
 export const app = express();
 
@@ -15,11 +16,12 @@ app.get("/health", (_req, res) => {
   res.status(200).json({
     status: "ok",
     service: "miniwallet-api",
-    phase: "skeleton"
+    phase: "phase-8-minimal-ui"
   });
 });
 
 app.use("/auth", authRouter);
+app.use("/wallet", walletRouter);
 app.use("/transfers", transfersRouter);
 app.use("/transactions", transactionsRouter);
 app.use("/admin", adminRouter);
