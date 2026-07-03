@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import { authRouter } from "./auth/routes.js";
 import { errorHandler } from "./errors.js";
+import { transfersRouter } from "./transfers/routes.js";
 
 export const app = express();
 
@@ -17,5 +18,6 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/auth", authRouter);
+app.use("/transfers", transfersRouter);
 
 app.use(errorHandler);

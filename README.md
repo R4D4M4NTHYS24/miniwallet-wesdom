@@ -1,8 +1,8 @@
 # MiniWallet
 
-MiniWallet is a fintech-oriented wallet technical test. This repository is currently at Phase 4: authentication, validation, middleware, and semantic errors.
+MiniWallet is a fintech-oriented wallet technical test. This repository is currently at Phase 5: atomic transfer creation via `POST /transfers`.
 
-No transfer execution logic, admin review behavior, transaction history endpoints, frontend features, or integration tests are implemented yet.
+Admin review behavior, transaction history endpoints, frontend features, and integration tests are not implemented yet.
 
 ## Run Locally
 
@@ -65,6 +65,19 @@ curl http://localhost:3000/auth/me \
   -H 'Authorization: Bearer <token>'
 ```
 
+## Transfer Endpoint
+
+Create a transfer:
+
+```bash
+curl -X POST http://localhost:3000/transfers \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Content-Type: application/json' \
+  -d '{"toUserId":"recipient-user-uuid","amountCents":"5000"}'
+```
+
+`amountCents` must be sent as a string for BigInt-safe parsing and serialization.
+
 ## Database Setup
 
 Start PostgreSQL:
@@ -97,4 +110,4 @@ Seeded users:
 - `alice@miniwallet.local`: regular user with `250000` available cents.
 - `bob@miniwallet.local`: regular user with `100000` available cents.
 
-Seeded passwords are placeholder hashes only. Create a user through `POST /auth/register` for local login checks.
+Seeded users share the local-development password `Password123!`.
