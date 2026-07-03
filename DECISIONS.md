@@ -197,3 +197,17 @@ Database constraints protect against invalid data even if a service bug or manua
 
 ### Trade-offs
 Some constraints are visible in migration SQL rather than the Prisma schema because Prisma has limited native `CHECK` constraint support. This slightly increases migration complexity, but improves financial correctness.
+
+## ADR 015 — Transfer amounts use strings at the API boundary
+
+### Context
+PostgreSQL stores `amountCents` as `BIGINT`. JavaScript numbers can lose precision for large integers, Prisma returns `BigInt` values that require explicit serialization, and `AuditLog` metadata cannot store raw JavaScript `bigint` values directly.
+
+### Decision
+`POST /transfers` receives `amountCents` as a base-10 positive integer string. The API rejects JSON numbers for `amountCents`, validates the string before converting it to `BigInt`, serializes `amountCents` as strings in API responses, and serializes `amountCents` and other BigInt-like values as strings in audit metadata.
+
+### Rationale
+This avoids unsafe JavaScript number rounding, keeps API, database, and audit behavior consistent, and makes validation and error handling explicit.
+
+### Trade-offs
+Clients must send `amountCents` as a string, which is slightly less ergonomic. The API contract is more explicit and safer for financial values.
