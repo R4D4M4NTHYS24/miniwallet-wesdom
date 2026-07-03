@@ -1,8 +1,8 @@
 # MiniWallet
 
-MiniWallet is a fintech-oriented wallet technical test. This repository is currently at Phase 6: transaction history and admin suspicious transfer review.
+MiniWallet is a fintech-oriented wallet technical test. This repository is currently at Phase 7: API integration tests for core wallet flows.
 
-Frontend features and integration tests are not implemented yet.
+Frontend features are not implemented yet. API integration tests cover the core auth, transfer, history, admin review, ledger, audit, and concurrency flows.
 
 ## Run Locally
 
@@ -119,3 +119,17 @@ Seeded users:
 - `bob@miniwallet.local`: regular user with `100000` available cents.
 
 Seeded users share the local-development password `Password123!`.
+
+## API Integration Tests
+
+Start PostgreSQL, apply migrations, then run the API integration tests:
+
+```bash
+docker compose up -d postgres
+npm run prisma:migrate
+npm run test:api
+```
+
+`npm run test:api` runs against PostgreSQL using `DATABASE_URL` when provided; otherwise it uses the local Docker Compose fallback database URL. The tests mutate the target database and are intended only for local, development, or test databases, not production.
+
+The test suite creates isolated prefixed data and cleans up its own test data.
