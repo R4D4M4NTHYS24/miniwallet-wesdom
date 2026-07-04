@@ -82,13 +82,17 @@ Seeded wallet balances:
 ## Reviewer UI Flow
 
 1. Open http://localhost:5173.
-2. Log in as Bob and copy Bob's displayed User ID.
-3. Log in as Alice.
-4. Paste Bob's User ID as recipient.
-5. Send `5000` cents to create a confirmed transfer.
-6. Send `100001` cents to create a pending-review transfer.
-7. Log in as admin.
-8. Approve or reject pending transactions from the admin queue.
+2. Use the auth screen to sign in or create a basic user account.
+3. Select `View reviewer demo accounts` to view the seeded local credentials.
+4. For the transfer and admin demo, log in as Bob and copy Bob's displayed User ID.
+5. Log in as Alice.
+6. Paste Bob's User ID as recipient.
+7. Send `5000` cents to create a confirmed transfer.
+8. Send `100001` cents to create a pending-review transfer.
+9. Log in as admin.
+10. Approve or reject pending transactions from the admin queue.
+
+Newly registered UI users start with a zero-balance user wallet. The seeded accounts remain recommended for the full reviewer flow because they include funded users and an admin user.
 
 ## API Quick Reference
 

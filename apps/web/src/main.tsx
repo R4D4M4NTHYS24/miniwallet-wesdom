@@ -40,7 +40,10 @@ type ApiError = {
 type RequestOptions = {
   method?: string;
   body?: unknown;
+  token?: string;
 };
+
+type AuthMode = "login" | "register";
 
 function formatCents(value: string, currency: string) {
   const amount = BigInt(value);
@@ -129,6 +132,56 @@ function WalletGraphic({ wallet }: { wallet: Wallet }) {
   );
 }
 
+function countByStatus(transactions: Transaction[], status: string) {
+  return transactions.filter((transaction) => transaction.status === status).length;
+}
+
+function ReviewInsights({
+  wallet,
+  transactions,
+  adminQueue
+}: {
+  wallet: Wallet | null;
+  transactions: Transaction[];
+  adminQueue: Transaction[];
+}) {
+  const confirmedCount = countByStatus(transactions, "CONFIRMED");
+  const pendingCount = countByStatus(transactions, "PENDING_REVIEW");
+  const rejectedCount = countByStatus(transactions, "REJECTED");
+
+  return (
+    <section className="card insights-card">
+      <div className="section-title">
+        <div>
+          <p className="eyebrow">Risk overview</p>
+          <h2>Review Insights</h2>
+        </div>
+        <span className="count-pill">&gt; 100000 cents</span>
+      </div>
+      {wallet ? <WalletGraphic wallet={wallet} /> : <p className="muted">Wallet exposure loads after sign in.</p>}
+      <div className="insight-grid" aria-label="Transaction status counts">
+        <div className="insight-tile">
+          <span>Confirmed</span>
+          <strong>{confirmedCount}</strong>
+        </div>
+        <div className="insight-tile">
+          <span>Pending</span>
+          <strong>{pendingCount}</strong>
+        </div>
+        <div className="insight-tile">
+          <span>Rejected</span>
+          <strong>{rejectedCount}</strong>
+        </div>
+      </div>
+      <p className="hint">
+        {adminQueue.length > 0
+          ? `${adminQueue.length} transaction${adminQueue.length === 1 ? "" : "s"} waiting in the admin review queue.`
+          : "No admin review items are currently loaded for this session."}
+      </p>
+    </section>
+  );
+}
+
 function TransactionTable({ transactions }: { transactions: Transaction[] }) {
   if (transactions.length === 0) {
     return <p className="muted">No transactions to show.</p>;
@@ -166,6 +219,9 @@ function TransactionTable({ transactions }: { transactions: Transaction[] }) {
 
 function App() {
   const [token, setToken] = useState(() => localStorage.getItem(tokenStorageKey) ?? "");
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
+  const [isSessionLoading, setIsSessionLoading] = useState(() => Boolean(localStorage.getItem(tokenStorageKey)));
   const [email, setEmail] = useState("alice@miniwallet.local");
   const [password, setPassword] = useState("Password123!");
   const [toUserId, setToUserId] = useState("");
@@ -183,8 +239,10 @@ function App() {
       "Content-Type": "application/json"
     };
 
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
+    const requestToken = options.token ?? token;
+
+    if (requestToken) {
+      headers.Authorization = `Bearer ${requestToken}`;
     }
 
     const response = await fetch(`${apiBaseUrl}${path}`, {
@@ -196,10 +254,10 @@ function App() {
     return parseResponse<T>(response);
   }
 
-  async function loadUserSession(currentUser?: User) {
+  async function loadUserSession(currentUser?: User, requestToken?: string) {
     const [{ wallet: nextWallet }, transactionPage] = await Promise.all([
-      apiRequest<{ wallet: Wallet }>("/wallet/me"),
-      apiRequest<{ items: Transaction[] }>("/transactions?page=1&pageSize=20")
+      apiRequest<{ wallet: Wallet }>("/wallet/me", { token: requestToken }),
+      apiRequest<{ items: Transaction[] }>("/transactions?page=1&pageSize=20", { token: requestToken })
     ]);
 
     setWallet(nextWallet);
@@ -208,7 +266,8 @@ function App() {
     const sessionUser = currentUser ?? user;
     if (sessionUser?.role === "ADMIN") {
       const queuePage = await apiRequest<{ items: Transaction[] }>(
-        "/admin/suspicious-transactions?page=1&pageSize=20"
+        "/admin/suspicious-transactions?page=1&pageSize=20",
+        { token: requestToken }
       );
       setAdminQueue(queuePage.items);
     } else {
@@ -216,16 +275,17 @@ function App() {
     }
   }
 
-  async function loadMe() {
-    if (!token) {
+  async function loadMe(requestToken = token) {
+    if (!requestToken) {
+      setIsSessionLoading(false);
       return;
     }
 
     try {
       setError(null);
-      const { user: nextUser } = await apiRequest<{ user: User }>("/auth/me");
+      const { user: nextUser } = await apiRequest<{ user: User }>("/auth/me", { token: requestToken });
       setUser(nextUser);
-      await loadUserSession(nextUser);
+      await loadUserSession(nextUser, requestToken);
     } catch (caught) {
       const nextError = isApiError(caught) ? caught : { code: "CLIENT_ERROR", message: "Unable to load session" };
 
@@ -239,6 +299,8 @@ function App() {
       setTransactions([]);
       setAdminQueue([]);
       setError(nextError);
+    } finally {
+      setIsSessionLoading(false);
     }
   }
 
@@ -256,26 +318,49 @@ function App() {
   }
 
   useEffect(() => {
-    void loadMe();
+    if (token) {
+      setIsSessionLoading(true);
+      void loadMe();
+    } else {
+      setIsSessionLoading(false);
+    }
   }, [token]);
 
-  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    if (!isDemoModalOpen) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsDemoModalOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isDemoModalOpen]);
+
+  async function handleAuthSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsBusy(true);
     setError(null);
 
     try {
-      const result = await fetch(`${apiBaseUrl}/auth/login`, {
+      const result = await fetch(`${apiBaseUrl}/auth/${authMode === "login" ? "login" : "register"}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
       }).then((response) => parseResponse<{ token: string; user: User }>(response));
 
       localStorage.setItem(tokenStorageKey, result.token);
+      setIsSessionLoading(true);
       setToken(result.token);
-      setUser(result.user);
     } catch (caught) {
-      setError(isApiError(caught) ? caught : { code: "CLIENT_ERROR", message: "Login failed" });
+      const fallbackMessage = authMode === "login" ? "Login failed" : "Registration failed";
+
+      setError(isApiError(caught) ? caught : { code: "CLIENT_ERROR", message: fallbackMessage });
     } finally {
       setIsBusy(false);
     }
@@ -289,6 +374,7 @@ function App() {
     setTransactions([]);
     setAdminQueue([]);
     setError(null);
+    setIsSessionLoading(false);
   }
 
   async function handleCreateTransfer(event: FormEvent<HTMLFormElement>) {
@@ -339,75 +425,143 @@ function App() {
     }
   }
 
+  if (!user) {
+    return (
+      <main className="shell auth-shell">
+        <section className="auth-screen">
+          <header className="hero auth-hero">
+            <div className="hero-copy">
+              <div className="auth-hero-top">
+                <div className="brand-mark">MW</div>
+              </div>
+              <div className="auth-hero-main">
+                <p className="eyebrow">MiniWallet</p>
+                <h1>Enter your wallet console.</h1>
+                <p>
+                  Sign in to inspect balances, send wallet transfers, and review suspicious high-value activity.
+                  Create a basic account when you only need to verify registration and JWT authentication.
+                </p>
+                <div className="hero-meta" aria-label="Application metadata">
+                  <span className="meta-chip" title={apiBaseUrl}><strong>API</strong>{apiBaseDisplay}</span>
+                  <span className="meta-chip"><strong>Auth</strong>JWT sessions</span>
+                  <span className="meta-chip"><strong>Demo</strong>Seeded reviewers</span>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <form className="card auth-card" onSubmit={handleAuthSubmit}>
+            <div className="section-title">
+              <div>
+                <p className="eyebrow">Access</p>
+                <h2>{authMode === "login" ? "Sign in" : "Create account"}</h2>
+              </div>
+            </div>
+            <ErrorBanner error={error} />
+            {isSessionLoading ? <p className="hint">Restoring saved session...</p> : null}
+            <div className="auth-toggle" aria-label="Access mode">
+              <button
+                aria-pressed={authMode === "login"}
+                className={authMode === "login" ? "active" : ""}
+                type="button"
+                onClick={() => setAuthMode("login")}
+              >
+                Sign in
+              </button>
+              <button
+                aria-pressed={authMode === "register"}
+                className={authMode === "register" ? "active" : ""}
+                type="button"
+                onClick={() => setAuthMode("register")}
+              >
+                Create account
+              </button>
+            </div>
+            <label>
+              Email
+              <input required value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
+            </label>
+            <label>
+              Password
+              <input required value={password} onChange={(event) => setPassword(event.target.value)} type="password" />
+            </label>
+            <button disabled={isBusy || isSessionLoading} type="submit">
+              {authMode === "login" ? "Sign in to wallet" : "Create account"}
+            </button>
+            <button className="secondary" type="button" onClick={() => setIsDemoModalOpen(true)}>
+              View reviewer demo accounts
+            </button>
+            {authMode === "register" ? (
+              <p className="hint">New accounts start with a zero-balance user wallet. Use seed accounts for transfer and admin review demos.</p>
+            ) : null}
+          </form>
+          {isDemoModalOpen ? (
+            <div className="modal-backdrop" role="presentation" onClick={() => setIsDemoModalOpen(false)}>
+              <section
+                className="demo-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="demo-modal-title"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="section-title">
+                  <div>
+                    <p className="eyebrow">Local review</p>
+                    <h2 id="demo-modal-title">Reviewer demo accounts</h2>
+                  </div>
+                  <button className="secondary copy-button" type="button" onClick={() => setIsDemoModalOpen(false)}>
+                    Close
+                  </button>
+                </div>
+                <p className="hint">
+                  These local seeded accounts are intended for the full technical review flow. Alice and Bob have
+                  balances for transfers, and admin has review access. Newly registered accounts start with zero balance.
+                </p>
+                <div className="demo-account-list">
+                  <div>
+                    <span>Admin</span>
+                    <strong>admin@miniwallet.local / Password123!</strong>
+                  </div>
+                  <div>
+                    <span>Alice</span>
+                    <strong>alice@miniwallet.local / Password123!</strong>
+                  </div>
+                  <div>
+                    <span>Bob</span>
+                    <strong>bob@miniwallet.local / Password123!</strong>
+                  </div>
+                </div>
+              </section>
+            </div>
+          ) : null}
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="shell">
-      <header className="hero">
+      <header className="hero dashboard-hero">
         <div className="hero-copy">
-          <div className="brand-mark">MW</div>
-          <p className="eyebrow">MiniWallet review console</p>
+          <div className="dashboard-brand-row">
+            <div className="brand-mark">MW</div>
+          </div>
+          <p className="eyebrow">MiniWallet dashboard</p>
           <h1>Wallet transfers with traceable review.</h1>
           <p>
-            Authenticate users, send wallet transfers, inspect balances and history, and review suspicious
-            high-value transactions from one focused fintech dashboard.
+            Send wallet transfers, inspect balances and history, and review suspicious high-value transactions
+            from one focused fintech dashboard.
           </p>
           <div className="hero-meta" aria-label="Application metadata">
             <span className="meta-chip" title={apiBaseUrl}><strong>API</strong>{apiBaseDisplay}</span>
-            <span className="meta-chip"><strong>Frontend</strong>React / Vite</span>
+            <span className="meta-chip"><strong>Signed in</strong>{user.email}</span>
             <span className="meta-chip"><strong>Review threshold</strong>&gt; 100000 cents</span>
           </div>
         </div>
+        <button className="secondary hero-logout" type="button" onClick={handleLogout}>Logout</button>
       </header>
 
       <ErrorBanner error={error} />
-
-      <section className="grid two-columns">
-        <form className="card login-card" onSubmit={handleLogin}>
-          <div className="section-title">
-            <div>
-              <p className="eyebrow">Access</p>
-              <h2>Login</h2>
-            </div>
-            {user ? <button className="secondary" type="button" onClick={handleLogout}>Logout</button> : null}
-          </div>
-          <label>
-            Email
-            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
-          </label>
-          <label>
-            Password
-            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" />
-          </label>
-          <button disabled={isBusy} type="submit">Login to wallet</button>
-          <div className="credentials">
-            <strong>Seed credentials</strong>
-            <span>admin@miniwallet.local / Password123!</span>
-            <span>alice@miniwallet.local / Password123!</span>
-            <span>bob@miniwallet.local / Password123!</span>
-          </div>
-        </form>
-
-        <section className="card user-card">
-          <p className="eyebrow">Session</p>
-          <h2>Current User</h2>
-          {user ? (
-            <dl className="details">
-              <dt>Email</dt>
-              <dd>{user.email}</dd>
-              <dt>Role</dt>
-              <dd><span className="role-pill">{user.role}</span></dd>
-              <dt>User ID</dt>
-              <dd className="user-id-row">
-                <span className="mono">{user.id}</span>
-                <button className="copy-button secondary" type="button" onClick={() => void handleCopyUserId()}>
-                  {copiedUserId ? "Copied" : "Copy"}
-                </button>
-              </dd>
-            </dl>
-          ) : (
-            <p className="muted">Login to load /auth/me.</p>
-          )}
-        </section>
-      </section>
 
       <section className="grid two-columns">
         <section className="card wallet-card">
@@ -419,24 +573,43 @@ function App() {
             <button className="secondary" disabled={!token || isBusy} type="button" onClick={() => void handleRefreshSession()}>Refresh</button>
           </div>
           {wallet ? (
-            <>
-              <div className="balances">
-                <div className="balance-tile primary-balance">
-                  <span>Available</span>
-                  <strong>{formatCents(wallet.availableBalanceCents, wallet.currency)}</strong>
-                  <small>{wallet.availableBalanceCents} cents ready to send</small>
-                </div>
-                <div className="balance-tile">
-                  <span>Pending review</span>
-                  <strong>{formatCents(wallet.pendingBalanceCents, wallet.currency)}</strong>
-                  <small>{wallet.pendingBalanceCents} cents reserved</small>
-                </div>
+            <div className="balances">
+              <div className="balance-tile primary-balance">
+                <span>Available</span>
+                <strong>{formatCents(wallet.availableBalanceCents, wallet.currency)}</strong>
+                <small>{wallet.availableBalanceCents} cents ready to send</small>
               </div>
-              <WalletGraphic wallet={wallet} />
-            </>
+              <div className="balance-tile">
+                <span>Pending review</span>
+                <strong>{formatCents(wallet.pendingBalanceCents, wallet.currency)}</strong>
+                <small>{wallet.pendingBalanceCents} cents reserved</small>
+              </div>
+            </div>
           ) : (
-            <p className="muted">Login to load /wallet/me.</p>
+            <p className="muted">Wallet data is not loaded yet. Use Refresh to retry.</p>
           )}
+        </section>
+
+        <section className="card user-card">
+          <div className="section-title">
+            <div>
+              <p className="eyebrow">Session</p>
+              <h2>Current User</h2>
+            </div>
+          </div>
+          <dl className="details">
+            <dt>Email</dt>
+            <dd>{user.email}</dd>
+            <dt>Role</dt>
+            <dd><span className="role-pill">{user.role}</span></dd>
+            <dt>User ID</dt>
+            <dd className="user-id-row">
+              <span className="mono">{user.id}</span>
+              <button className="copy-button secondary" type="button" onClick={() => void handleCopyUserId()}>
+                {copiedUserId ? "Copied" : "Copy"}
+              </button>
+            </dd>
+          </dl>
         </section>
 
         <form className="card transfer-card" onSubmit={handleCreateTransfer}>
@@ -454,6 +627,8 @@ function App() {
           <p className="hint">Amounts above 100000 cents enter pending admin review.</p>
           <button disabled={!token || isBusy} type="submit">Create transfer</button>
         </form>
+
+        <ReviewInsights wallet={wallet} transactions={transactions} adminQueue={adminQueue} />
       </section>
 
       <section className="card data-card">
