@@ -4,6 +4,7 @@ import "./styles.css";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 const tokenStorageKey = "miniwallet.jwt";
+const apiBaseDisplay = apiBaseUrl.replace(/^https?:\/\//, "");
 
 type User = {
   id: string;
@@ -92,6 +93,42 @@ function ErrorBanner({ error }: { error: ApiError | null }) {
   );
 }
 
+function formatStatusLabel(status: string) {
+  return status.split("_").join(" ").toLowerCase();
+}
+
+function StatusBadge({ status }: { status: string }) {
+  return <span className={`status status-${status.toLowerCase()}`}>{formatStatusLabel(status)}</span>;
+}
+
+function WalletGraphic({ wallet }: { wallet: Wallet }) {
+  const available = BigInt(wallet.availableBalanceCents);
+  const pending = BigInt(wallet.pendingBalanceCents);
+  const total = available + pending;
+  const pendingShare = total === 0n ? 0 : Number((pending * 100n) / total);
+  const hasPendingExposure = pending > 0n;
+  const pendingShareLabel = hasPendingExposure && pendingShare === 0 ? "<1%" : `${pendingShare}%`;
+
+  return (
+    <div
+      className={`wallet-graphic ${hasPendingExposure ? "" : "wallet-graphic-empty"}`}
+      style={{ "--pending-share": `${pendingShare}%` } as React.CSSProperties}
+    >
+      <div className="donut" aria-hidden="true">
+        <span>{pendingShareLabel}</span>
+      </div>
+      <div>
+        <strong>Pending exposure</strong>
+        <p>
+          {hasPendingExposure
+            ? `${pendingShareLabel} of visible wallet funds are awaiting review.`
+            : "No funds currently awaiting review."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function TransactionTable({ transactions }: { transactions: Transaction[] }) {
   if (transactions.length === 0) {
     return <p className="muted">No transactions to show.</p>;
@@ -113,9 +150,7 @@ function TransactionTable({ transactions }: { transactions: Transaction[] }) {
           {transactions.map((transaction) => (
             <tr key={transaction.id}>
               <td>
-                <span className={`status status-${transaction.status.toLowerCase()}`}>
-                  {transaction.status}
-                </span>
+                <StatusBadge status={transaction.status} />
               </td>
               <td>{formatCents(transaction.amountCents, transaction.currency)}</td>
               <td className="mono">{transaction.fromUserId}</td>
@@ -141,6 +176,7 @@ function App() {
   const [adminQueue, setAdminQueue] = useState<Transaction[]>([]);
   const [error, setError] = useState<ApiError | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [copiedUserId, setCopiedUserId] = useState(false);
 
   async function apiRequest<T>(path: string, options: RequestOptions = {}) {
     const headers: HeadersInit = {
@@ -289,29 +325,49 @@ function App() {
     }
   }
 
+  async function handleCopyUserId() {
+    if (!user) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(user.id);
+      setCopiedUserId(true);
+      window.setTimeout(() => setCopiedUserId(false), 1600);
+    } catch {
+      setError({ code: "CLIPBOARD_ERROR", message: "Unable to copy User ID" });
+    }
+  }
+
   return (
     <main className="shell">
       <header className="hero">
-        <div>
-          <p className="eyebrow">Phase 8 review UI</p>
-          <h1>MiniWallet</h1>
-          <p>Minimal frontend for authentication, wallet summary, transfers, history, and admin review.</p>
+        <div className="hero-copy">
+          <div className="brand-mark">MW</div>
+          <p className="eyebrow">MiniWallet review console</p>
+          <h1>Wallet transfers with traceable review.</h1>
+          <p>
+            Authenticate users, send wallet transfers, inspect balances and history, and review suspicious
+            high-value transactions from one focused fintech dashboard.
+          </p>
+          <div className="hero-meta" aria-label="Application metadata">
+            <span className="meta-chip" title={apiBaseUrl}><strong>API</strong>{apiBaseDisplay}</span>
+            <span className="meta-chip"><strong>Frontend</strong>React / Vite</span>
+            <span className="meta-chip"><strong>Review threshold</strong>&gt; 100000 cents</span>
+          </div>
         </div>
-        <dl className="api-config">
-          <dt>API base URL</dt>
-          <dd>{apiBaseUrl}</dd>
-          <dt>Configured by</dt>
-          <dd>VITE_API_BASE_URL</dd>
-        </dl>
       </header>
 
       <ErrorBanner error={error} />
 
       <section className="grid two-columns">
-        <form className="card" onSubmit={handleLogin}>
+        <form className="card login-card" onSubmit={handleLogin}>
           <div className="section-title">
-            <h2>Login</h2>
-            {user ? <button type="button" onClick={handleLogout}>Logout</button> : null}
+            <div>
+              <p className="eyebrow">Access</p>
+              <h2>Login</h2>
+            </div>
+            {user ? <button className="secondary" type="button" onClick={handleLogout}>Logout</button> : null}
           </div>
           <label>
             Email
@@ -321,7 +377,7 @@ function App() {
             Password
             <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" />
           </label>
-          <button disabled={isBusy} type="submit">Login</button>
+          <button disabled={isBusy} type="submit">Login to wallet</button>
           <div className="credentials">
             <strong>Seed credentials</strong>
             <span>admin@miniwallet.local / Password123!</span>
@@ -330,16 +386,22 @@ function App() {
           </div>
         </form>
 
-        <section className="card">
+        <section className="card user-card">
+          <p className="eyebrow">Session</p>
           <h2>Current User</h2>
           {user ? (
             <dl className="details">
               <dt>Email</dt>
               <dd>{user.email}</dd>
               <dt>Role</dt>
-              <dd>{user.role}</dd>
+              <dd><span className="role-pill">{user.role}</span></dd>
               <dt>User ID</dt>
-              <dd className="mono">{user.id}</dd>
+              <dd className="user-id-row">
+                <span className="mono">{user.id}</span>
+                <button className="copy-button secondary" type="button" onClick={() => void handleCopyUserId()}>
+                  {copiedUserId ? "Copied" : "Copy"}
+                </button>
+              </dd>
             </dl>
           ) : (
             <p className="muted">Login to load /auth/me.</p>
@@ -348,36 +410,43 @@ function App() {
       </section>
 
       <section className="grid two-columns">
-        <section className="card">
+        <section className="card wallet-card">
           <div className="section-title">
-            <h2>Wallet</h2>
-            <button disabled={!token || isBusy} type="button" onClick={() => void handleRefreshSession()}>Refresh</button>
+            <div>
+              <p className="eyebrow">Balance</p>
+              <h2>Wallet</h2>
+            </div>
+            <button className="secondary" disabled={!token || isBusy} type="button" onClick={() => void handleRefreshSession()}>Refresh</button>
           </div>
           {wallet ? (
-            <div className="balances">
-              <div>
-                <span>Available</span>
-                <strong>{formatCents(wallet.availableBalanceCents, wallet.currency)}</strong>
-                <small>{wallet.availableBalanceCents} cents</small>
+            <>
+              <div className="balances">
+                <div className="balance-tile primary-balance">
+                  <span>Available</span>
+                  <strong>{formatCents(wallet.availableBalanceCents, wallet.currency)}</strong>
+                  <small>{wallet.availableBalanceCents} cents ready to send</small>
+                </div>
+                <div className="balance-tile">
+                  <span>Pending review</span>
+                  <strong>{formatCents(wallet.pendingBalanceCents, wallet.currency)}</strong>
+                  <small>{wallet.pendingBalanceCents} cents reserved</small>
+                </div>
               </div>
-              <div>
-                <span>Pending</span>
-                <strong>{formatCents(wallet.pendingBalanceCents, wallet.currency)}</strong>
-                <small>{wallet.pendingBalanceCents} cents</small>
-              </div>
-            </div>
+              <WalletGraphic wallet={wallet} />
+            </>
           ) : (
             <p className="muted">Login to load /wallet/me.</p>
           )}
         </section>
 
-        <form className="card" onSubmit={handleCreateTransfer}>
+        <form className="card transfer-card" onSubmit={handleCreateTransfer}>
+          <p className="eyebrow">Action</p>
           <h2>Create Transfer</h2>
           <label>
             Recipient user ID
             <input value={toUserId} onChange={(event) => setToUserId(event.target.value)} placeholder="UUID" />
           </label>
-          <p className="hint">Tip: log in as Bob to copy Bob's displayed User ID, then log back in as Alice to send a transfer.</p>
+          <p className="hint">Log in as Bob, copy Bob's User ID from the session card, then log back in as Alice to send a transfer.</p>
           <label>
             Amount cents
             <input value={amountCents} onChange={(event) => setAmountCents(event.target.value)} inputMode="numeric" />
@@ -387,14 +456,26 @@ function App() {
         </form>
       </section>
 
-      <section className="card">
-        <h2>Transaction History</h2>
+      <section className="card data-card">
+        <div className="section-title">
+          <div>
+            <p className="eyebrow">Ledger view</p>
+            <h2>Transaction History</h2>
+          </div>
+          <span className="count-pill">{transactions.length} shown</span>
+        </div>
         <TransactionTable transactions={transactions} />
       </section>
 
       {user?.role === "ADMIN" ? (
-        <section className="card">
-          <h2>Admin Suspicious Queue</h2>
+        <section className="card admin-card">
+          <div className="section-title">
+            <div>
+              <p className="eyebrow">Admin controls</p>
+              <h2>Suspicious Queue</h2>
+            </div>
+            <span className="count-pill">{adminQueue.length} pending</span>
+          </div>
           {adminQueue.length === 0 ? (
             <p className="muted">No pending suspicious transactions.</p>
           ) : (
@@ -405,6 +486,7 @@ function App() {
                     <strong>{formatCents(transaction.amountCents, transaction.currency)}</strong>
                     <span className="mono">{transaction.id}</span>
                     <span>{transaction.riskReason}</span>
+                    <StatusBadge status={transaction.status} />
                   </div>
                   <div className="actions">
                     <button disabled={isBusy} type="button" onClick={() => void handleReview(transaction.id, "approve")}>

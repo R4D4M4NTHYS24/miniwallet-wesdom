@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="MiniWallet">
+  <defs>
+    <linearGradient id="bg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff4fb8" />
+      <stop offset="0.55" stop-color="#9d5cff" />
+      <stop offset="1" stop-color="#11152b" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="#070914" />
+  <path d="M14 22c0-4.4 3.6-8 8-8h27c2.8 0 5 2.2 5 5v26c0 2.8-2.2 5-5 5H22c-4.4 0-8-3.6-8-8V22Z" fill="url(#bg)" />
+  <path d="M20 25h34v7H20a3.5 3.5 0 1 1 0-7Z" fill="#ffffff" fill-opacity="0.2" />
+  <path d="M25 39V28h3.6l3.5 5.6 3.5-5.6H39v11h-3v-6.1l-2.8 4.3h-2.1L28 32.9V39h-3Z" fill="#ffffff" />
+  <circle cx="48" cy="38" r="3" fill="#ffffff" fill-opacity="0.92" />
+</svg>
