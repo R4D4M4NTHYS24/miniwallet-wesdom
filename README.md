@@ -21,7 +21,7 @@ From a fresh checkout with Docker available, start the full local review stack w
 docker compose up -d --build
 ```
 
-Docker Compose starts PostgreSQL, waits for it to become healthy, runs Prisma migrations with `prisma migrate deploy`, seeds reviewer accounts, then starts the API and web app.
+Docker Compose starts PostgreSQL, waits for it to become healthy, runs Prisma migrations with `prisma migrate deploy`, seeds local/demo reviewer accounts, then starts the API and web app.
 
 Expected local URLs:
 
@@ -32,12 +32,13 @@ Expected local URLs:
 
 Docker Compose passes an internal database URL to containers using the `postgres` service hostname. The `.env.example` database URL uses `localhost` for commands run from the host.
 
-`prisma db seed` creates or updates the seeded reviewer accounts and balances, so rerunning `docker compose up -d --build` keeps the reviewer accounts usable without resetting the database.
+`prisma db seed` is for local/demo setup. It creates seeded reviewer users and wallets when missing, but rerunning it is idempotent and does not rewrite existing wallet balances or transaction history.
 
-To stop and remove local Docker data for a clean review run:
+To reset demo balances and data for a clean review run:
 
 ```bash
 docker compose down -v
+docker compose up -d --build
 ```
 
 ## Host Development And Tests
@@ -79,7 +80,7 @@ All seeded users use the local-development password `Password123!`.
 - `alice@miniwallet.local` / `Password123!`
 - `bob@miniwallet.local` / `Password123!`
 
-Seeded wallet balances:
+Seeded wallet balances on a clean volume:
 
 - Admin: `0` available cents
 - Alice: `250000` available cents

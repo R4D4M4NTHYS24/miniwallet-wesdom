@@ -102,7 +102,7 @@ For transfers above `100000` cents, funds move from sender available balance to 
 8. Create `Transaction` with `status = PENDING_REVIEW` and `riskReason = AMOUNT_ABOVE_REVIEW_THRESHOLD`.
 9. Create immutable `LedgerEntry` rows for available debit and pending credit.
 10. Create an `AuditLog` event.
-11. Commit and return `202 Accepted`.
+11. Commit and return `201 Created` with `status = PENDING_REVIEW`.
 
 ## Admin approval flow
 

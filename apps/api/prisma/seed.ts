@@ -33,37 +33,28 @@ async function main() {
   const passwordHash = await bcrypt.hash(seedPassword, 12);
 
   for (const seedUser of seedUsers) {
-    await prisma.user.upsert({
+    const user = await prisma.user.upsert({
       where: { email: seedUser.email },
       update: {
         passwordHash,
-        role: seedUser.role,
-        wallet: {
-          upsert: {
-            create: {
-              availableBalanceCents: seedUser.availableBalanceCents,
-              pendingBalanceCents: 0n,
-              currency: "USD"
-            },
-            update: {
-              availableBalanceCents: seedUser.availableBalanceCents,
-              pendingBalanceCents: 0n,
-              currency: "USD"
-            }
-          }
-        }
+        role: seedUser.role
       },
       create: {
         email: seedUser.email,
         passwordHash,
-        role: seedUser.role,
-        wallet: {
-          create: {
-            availableBalanceCents: seedUser.availableBalanceCents,
-            pendingBalanceCents: 0n,
-            currency: "USD"
-          }
-        }
+        role: seedUser.role
+      },
+      select: { id: true }
+    });
+
+    await prisma.wallet.upsert({
+      where: { userId: user.id },
+      update: {},
+      create: {
+        userId: user.id,
+        availableBalanceCents: seedUser.availableBalanceCents,
+        pendingBalanceCents: 0n,
+        currency: "USD"
       }
     });
   }

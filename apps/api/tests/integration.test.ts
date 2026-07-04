@@ -5,7 +5,7 @@ import { app } from "../src/app.js";
 import { prisma } from "../src/db.js";
 
 const password = "Password123!";
-const testRun = `phase7-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const testRun = `integration-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 type TestUser = {
   id: string;
@@ -165,7 +165,7 @@ describe("MiniWallet API integration", () => {
   const prefixes: string[] = [];
 
   beforeAll(async () => {
-    process.env.JWT_SECRET = process.env.JWT_SECRET ?? "phase7-test-secret";
+    process.env.JWT_SECRET = process.env.JWT_SECRET ?? "miniwallet-test-secret";
     await prisma.$connect();
   });
 
