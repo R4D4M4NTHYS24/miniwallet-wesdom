@@ -49,6 +49,12 @@ npm install
 cp .env.example .env
 ```
 
+`npm install` automatically runs `npm run db:generate` to generate Prisma Client from `apps/api/prisma/schema.prisma`. If Prisma Client is missing or stale, rerun it manually:
+
+```bash
+npm run db:generate
+```
+
 For host-side development or tests, start PostgreSQL, apply development migrations, and seed reviewer accounts from the host:
 
 ```bash
@@ -123,6 +129,9 @@ curl -X POST http://localhost:3000/transfers \
 Build the API and web apps, or run the API integration suite:
 
 ```bash
+npm install
+npm run db:generate
+cp .env.example .env
 npm run build:api
 npm run build:web
 npm run test:api

@@ -7,12 +7,14 @@
     "apps/web"
   ],
   "scripts": {
+    "postinstall": "if [ -x apps/api/node_modules/.bin/prisma ]; then npm run db:generate; else echo \"Skipping Prisma Client generation; API workspace dependencies are not installed.\"; fi",
     "dev:api": "npm --workspace apps/api run dev",
     "dev:web": "npm --workspace apps/web run dev",
     "build": "npm --workspaces run build",
     "build:api": "npm --workspace apps/api run build",
     "build:web": "npm --workspace apps/web run build",
     "test:api": "npm --workspace apps/api run test",
+    "db:generate": "DATABASE_URL=${DATABASE_URL:-postgresql://miniwallet:miniwallet@localhost:5432/miniwallet?schema=public} apps/api/node_modules/.bin/prisma generate --schema apps/api/prisma/schema.prisma",
     "prisma:generate": "npm --workspace apps/api run prisma:generate",
     "prisma:migrate": "npm --workspace apps/api run prisma:migrate",
     "prisma:seed": "npm --workspace apps/api run prisma:seed"
