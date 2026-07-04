@@ -15,28 +15,13 @@ Transfers up to `100000` cents are confirmed immediately. Transfers above `10000
 
 ## Run Locally
 
-Install dependencies and create the host-local environment file:
+From a fresh checkout with Docker available, start the full local review stack with one command:
 
 ```bash
-npm install
-cp .env.example .env
+docker compose up -d --build
 ```
 
-Start PostgreSQL, apply database migrations, and seed reviewer accounts:
-
-```bash
-docker compose up -d postgres
-npm run prisma:migrate
-npm run prisma:seed
-```
-
-`npm run prisma:seed` creates or updates the seeded reviewer accounts and balances. The app is meaningfully usable after migrations and seed have completed.
-
-Start the API and web app:
-
-```bash
-docker compose up -d --build api web
-```
+Docker Compose starts PostgreSQL, waits for it to become healthy, runs Prisma migrations with `prisma migrate deploy`, seeds reviewer accounts, then starts the API and web app.
 
 Expected local URLs:
 
@@ -45,7 +30,40 @@ Expected local URLs:
 - Health check: http://localhost:3000/health
 - PostgreSQL: localhost:5432
 
-Docker Compose passes an internal database URL to the API container using the `postgres` service hostname. The `.env.example` database URL uses `localhost` for commands run from the host.
+Docker Compose passes an internal database URL to containers using the `postgres` service hostname. The `.env.example` database URL uses `localhost` for commands run from the host.
+
+`prisma db seed` creates or updates the seeded reviewer accounts and balances, so rerunning `docker compose up -d --build` keeps the reviewer accounts usable without resetting the database.
+
+To stop and remove local Docker data for a clean review run:
+
+```bash
+docker compose down -v
+```
+
+## Host Development And Tests
+
+Install dependencies and create the host-local environment file:
+
+```bash
+npm install
+cp .env.example .env
+```
+
+For host-side development or tests, start PostgreSQL, apply development migrations, and seed reviewer accounts from the host:
+
+```bash
+docker compose up -d postgres
+npm run prisma:migrate
+npm run prisma:seed
+```
+
+Run the API integration tests from the host:
+
+```bash
+npm run test:api
+```
+
+The API integration tests use PostgreSQL and mutate the configured `DATABASE_URL`. They are intended only for local, development, or test databases. Do not point the test script at production data.
 
 ## Seed Accounts
 
@@ -98,15 +116,13 @@ curl -X POST http://localhost:3000/transfers \
 
 ## Tests
 
-Start PostgreSQL, apply migrations, then run the API integration tests:
+Build the API and web apps, or run the API integration suite:
 
 ```bash
-docker compose up -d postgres
-npm run prisma:migrate
+npm run build:api
+npm run build:web
 npm run test:api
 ```
-
-The API integration tests use PostgreSQL and mutate the configured `DATABASE_URL`. They are intended only for local, development, or test databases. Do not point the test script at production data.
 
 The integration suite currently contains 11 tests covering core financial flows, including authentication, confirmed transfers, pending-review transfers, admin approval/rejection, history access control, validation failures, rollback behavior, ledger/audit rows, and concurrent transfer protection.
 

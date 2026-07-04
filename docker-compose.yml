@@ -31,6 +31,20 @@ services:
     ports:
       - "${API_PORT:-3000}:3000"
     depends_on:
+      db-setup:
+        condition: service_completed_successfully
+    networks:
+      - miniwallet-network
+
+  db-setup:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: miniwallet-db-setup
+    environment:
+      DATABASE_URL: postgresql://miniwallet:miniwallet@postgres:5432/miniwallet?schema=public
+    command: sh -c "cd apps/api && npx prisma migrate deploy && npx prisma db seed"
+    depends_on:
       postgres:
         condition: service_healthy
     networks:
@@ -46,7 +60,8 @@ services:
     ports:
       - "${WEB_PORT:-5173}:5173"
     depends_on:
-      - api
+      api:
+        condition: service_started
     networks:
       - miniwallet-network
 
