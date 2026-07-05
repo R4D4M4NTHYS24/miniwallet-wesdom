@@ -156,19 +156,37 @@ Testing concurrent transfers demonstrates that atomicity and row-level locking w
 ### Trade-offs
 Concurrency tests can be slightly more complex and timing-sensitive, but they provide high confidence in financial correctness.
 
-## ADR 012 — Minimal frontend scope
+## ADR 012 — Reviewer-oriented web UI scope
 
 ### Context
-The core challenge is financial correctness, transfer state management, auditability, and reproducible validation.
+
+The core challenge is financial correctness, transfer state management, auditability, and reproducible validation. However, a web interface also helps reviewers validate the main wallet flow quickly, especially when the system includes different user roles and transaction states.
 
 ### Decision
-Keep the React frontend minimal and focus effort on backend correctness, tests, Docker Compose, and documentation.
+
+Keep the React frontend as a reviewer-oriented web UI rather than a full production backoffice.
+
+The UI supports the main flows required to evaluate the system:
+
+- authentication and registration;
+- wallet balance visibility;
+- confirmed transfers;
+- high-value transfers pending admin review;
+- transaction history visibility;
+- admin suspicious transaction review;
+- approve/reject actions.
 
 ### Rationale
-A simple frontend is enough to demonstrate web usage while preserving time for the highest-risk backend requirements.
+
+The frontend makes the domain model easier to inspect visually: available balance, pending balance, transfer status, suspicious transaction review, and final fund movement after admin approval.
+
+The main engineering effort still prioritizes backend correctness, database transactions, integration tests, Docker Compose, and documentation. The UI exists to reduce review friction and demonstrate the end-to-end behavior without turning the challenge into a full product-design exercise.
 
 ### Trade-offs
-The UI will be less polished, but the implementation will better address the requirements most relevant to a fintech wallet system.
+
+The UI is intentionally not a production-grade wallet interface or a complete admin backoffice. For example, the API supports paginated transaction history, but the UI does not expose advanced pagination controls, search, or full administrative reporting.
+
+This keeps the scope controlled while still providing a usable end-to-end reviewer experience.
 
 ## ADR 013 — Docker Compose for reproducible local execution
 
