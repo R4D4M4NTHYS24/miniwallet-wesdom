@@ -5,7 +5,7 @@ erDiagram
   User ||--o| Wallet : owns
   User ||--o{ Transaction : sends
   User ||--o{ Transaction : receives
-  User ||--o{ Transaction : reviews
+  User ||--o{ Transaction : reviews_as_admin
   User ||--o{ AuditLog : acts
   Wallet ||--o{ Transaction : source_wallet
   Wallet ||--o{ Transaction : destination_wallet
